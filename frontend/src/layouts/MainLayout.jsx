@@ -1,22 +1,9 @@
-function MainLayout({children}) {
-
-return(
-
-<div
-className="
-mx-auto
-max-w-md
-min-h-screen
-bg-muted
-"
->
-
-{children}
-
-</div>
-
-)
-
+function MainLayout({ children }) {
+  return (
+    <div className="mx-auto min-h-screen max-w-md bg-muted">
+      {children}
+    </div>
+  );
 }
 
-export default MainLayout
+export default MainLayout;

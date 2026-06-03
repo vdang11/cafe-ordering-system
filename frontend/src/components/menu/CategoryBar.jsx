@@ -4,45 +4,22 @@ function CategoryBar() {
   function scrollToSection(category) {
     const element = document.getElementById(category);
 
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
+    if (!element) return;
+
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
 
   return (
-    <div
-      className="
-      sticky
-      top-0
-      z-50
-      bg-white
-      border-b
-      overflow-x-auto
-      "
-    >
-      <div
-        className="
-        flex
-        gap-3
-        p-3
-        w-max
-        "
-      >
+    <div className="sticky top-0 z-50 overflow-x-auto border-b bg-white">
+      <div className="flex w-max gap-3 p-3">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => scrollToSection(category)}
-            className="
-            px-4
-            py-2
-            rounded-full
-            bg-muted
-            whitespace-nowrap
-            text-sm
-            "
+            className="rounded-full bg-muted px-4 py-2 text-sm whitespace-nowrap"
           >
             {category}
           </button>
