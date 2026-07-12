@@ -3,13 +3,31 @@ import { create } from "zustand";
 function createCartKey(item) {
   return JSON.stringify({
     id: item.id,
-
     selectedOptions: item.selectedOptions,
-
     selectedAddons: item.selectedAddons,
-
     counters: item.counters,
   });
+}
+
+function calculateTotalPrice(item) {
+  // If totalPrice is already calculated and valid, return it
+  if (item.totalPrice !== undefined && !isNaN(item.totalPrice)) {
+    return item.totalPrice;
+  }
+  
+  // Calculate based on item price + option price + addon price
+  const optionPrice = Object.values(item.selectedOptions || {})
+    .filter(Boolean)
+    .reduce((sum, option) => sum + (option.price || 0), 0);
+    
+  const addonPrice = Object.values(item.selectedAddons || {})
+    .flat()
+    .filter(Boolean)
+    .reduce((sum, addon) => sum + (addon.price || 0), 0);
+    
+  const basePrice = item.price || 0;
+  
+  return basePrice + optionPrice + addonPrice;
 }
 
 const useCartStore = create((set) => ({
@@ -27,7 +45,6 @@ const useCartStore = create((set) => ({
             item.cartKey === cartKey
               ? {
                   ...item,
-
                   quantity: item.quantity + 1,
                 }
               : item,
@@ -38,13 +55,11 @@ const useCartStore = create((set) => ({
       return {
         items: [
           ...state.items,
-
           {
             ...newItem,
-
             cartKey,
-
             quantity: 1,
+            totalPrice: calculateTotalPrice(newItem),
           },
         ],
       };
@@ -56,7 +71,6 @@ const useCartStore = create((set) => ({
         item.cartKey === cartKey
           ? {
               ...item,
-
               quantity: item.quantity + 1,
             }
           : item,
@@ -66,17 +80,14 @@ const useCartStore = create((set) => ({
   decreaseQuantity: (cartKey) =>
     set((state) => ({
       items: state.items
-
         .map((item) =>
           item.cartKey === cartKey
             ? {
                 ...item,
-
                 quantity: item.quantity - 1,
               }
             : item,
         )
-
         .filter((item) => item.quantity > 0),
     })),
 
@@ -88,7 +99,13 @@ const useCartStore = create((set) => ({
   updateItem: (cartKey, updatedItem) =>
     set((state) => ({
       items: state.items.map((item) =>
-        item.cartKey === cartKey ? { ...item, ...updatedItem } : item,
+        item.cartKey === cartKey
+          ? {
+              ...item,
+              ...updatedItem,
+              totalPrice: calculateTotalPrice({ ...item, ...updatedItem }),
+            }
+          : item,
       ),
     })),
 }));

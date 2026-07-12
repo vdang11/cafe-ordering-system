@@ -13,6 +13,18 @@ function CartItem({ item }) {
     .flat()
     .filter(Boolean);
 
+  // Robust total price calculation with error handling
+  const calculateTotal = () => {
+    if (item.totalPrice !== undefined && !isNaN(item.totalPrice)) {
+      return item.totalPrice.toFixed(2);
+    }
+    // Fallback calculation
+    if (item.price && item.quantity && !isNaN(item.price) && !isNaN(item.quantity)) {
+      return (item.price * item.quantity).toFixed(2);
+    }
+    return '0.00';
+  };
+
   return (
     <div className="bg-white rounded-3xl border p-4 space-y-3">
       {/* ================= HEADER ================= */}
@@ -26,7 +38,7 @@ function CartItem({ item }) {
           </p>
 
           <p className="font-bold">
-            Total: ${item.totalPrice.toFixed(2)}
+            Total: ${calculateTotal()}
           </p>
         </div>
 
