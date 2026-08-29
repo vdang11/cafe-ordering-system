@@ -118,7 +118,7 @@ const useCartStore = create(
           merged.cartKey = createCartKey(merged);
           merged.totalPrice = calculateTotalPrice(merged);
 
-          // Cấu hình không đổi -> thay tại chỗ
+          // Configuration unchanged -> replace in place
           if (merged.cartKey === cartKey) {
             return {
               items: state.items.map((item) =>
@@ -127,7 +127,7 @@ const useCartStore = create(
             };
           }
 
-          // Cấu hình mới trùng một dòng khác -> gộp quantity, xoá dòng cũ
+          // New configuration collides with another row -> merge quantities, drop the old row
           const duplicate = state.items.some(
             (item) => item.cartKey === merged.cartKey,
           );
@@ -158,11 +158,11 @@ const useCartStore = create(
     {
       name: "cafe-cart",
 
-      // Tăng version mỗi khi đổi cấu trúc cart item.
-      // Zustand thấy version cũ hơn sẽ gọi migrate() thay vì nạp data hỏng.
+      // Bump this whenever the cart item shape changes.
+      // Zustand calls migrate() on an older version instead of loading stale data.
       version: 1,
 
-      // Chỉ lưu items. Các action là function, không serialize được.
+      // Persist items only. The actions are functions and cannot be serialised.
       partialize: (state) => ({ items: state.items }),
 
       migrate: () => ({ items: [] }),

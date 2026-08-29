@@ -55,8 +55,8 @@ function ProductModal({
     setSelectedOptions((prev) => {
       const current = prev[group.id];
 
-      // Bấm lại đúng lựa chọn đang active -> bỏ chọn.
-      // Group bắt buộc (size, serve) thì luôn phải giữ một lựa chọn.
+      // Clicking the active choice again clears it.
+      // Required groups (size, serve) must always keep a selection.
       if (current?.id === option.id) {
         if (group.required) return prev;
 
@@ -206,7 +206,7 @@ function ProductModal({
           Product detail
         </DialogDescription>
 
-        {/* ================= VUNG CUON ================= */}
+        {/* ================= SCROLL AREA ================= */}
 
         <div className="flex-1 overflow-y-auto px-4 pt-10 pb-4">
           <img

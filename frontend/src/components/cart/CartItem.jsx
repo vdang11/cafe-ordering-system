@@ -13,13 +13,13 @@ function CartItem({ item }) {
     .flat()
     .filter(Boolean);
 
-  // Nhóm option gốc từ menu — cần để tra tên/đơn vị của counter
+  // Option groups from the menu item, used to look up a counter's name and unit
   const optionGroups = item.optionGroups ?? item.modifierGroups ?? [];
 
-  // Giá 1 phần (đã gồm option + addon), do store tính
+  // Price for a single unit (options and addons included), computed by the store
   const unitPrice = item.totalPrice ?? item.price ?? 0;
 
-  // Giá cả dòng = giá 1 phần × số lượng
+  // Line total = unit price x quantity
   const lineTotal = unitPrice * (item.quantity ?? 1);
 
   return (
