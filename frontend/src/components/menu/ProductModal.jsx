@@ -43,9 +43,7 @@ function ProductModal({
     initialSelectedAddons || {},
   );
 
-  const [counters, setCounters] = useState(
-    initialCounters || {},
-  );
+  const [counters, setCounters] = useState(initialCounters || {});
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,11 +51,26 @@ function ProductModal({
   // OPTION
   // =====================================================
 
-  function selectOption(groupId, option) {
-    setSelectedOptions((prev) => ({
-      ...prev,
-      [groupId]: option,
-    }));
+  function selectOption(group, option) {
+    setSelectedOptions((prev) => {
+      const current = prev[group.id];
+
+      // Bấm lại đúng lựa chọn đang active -> bỏ chọn.
+      // Group bắt buộc (size, serve) thì luôn phải giữ một lựa chọn.
+      if (current?.id === option.id) {
+        if (group.required) return prev;
+
+        const next = { ...prev };
+        delete next[group.id];
+
+        return next;
+      }
+
+      return {
+        ...prev,
+        [group.id]: option,
+      };
+    });
   }
 
   // =====================================================
@@ -93,9 +106,7 @@ function ProductModal({
   function toggleAddon(groupId, option) {
     const current = selectedAddons[groupId] ?? [];
 
-    const exists = current.some(
-      (addon) => addon.id === option.id,
-    );
+    const exists = current.some((addon) => addon.id === option.id);
 
     setSelectedAddons((prev) => ({
       ...prev,
@@ -123,18 +134,12 @@ function ProductModal({
 
   const optionPrice = Object.values(selectedOptions)
     .filter(Boolean)
-    .reduce(
-      (sum, option) => sum + (option.price ?? 0),
-      0,
-    );
+    .reduce((sum, option) => sum + (option.price ?? 0), 0);
 
   const addonPrice = Object.values(selectedAddons)
     .flat()
     .filter(Boolean)
-    .reduce(
-      (sum, addon) => sum + (addon.price ?? 0),
-      0,
-    );
+    .reduce((sum, addon) => sum + (addon.price ?? 0), 0);
 
   const total = item.price + optionPrice + addonPrice;
 
@@ -186,167 +191,142 @@ function ProductModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
         className="
-          max-h-[90vh] max-w-sm
-          overflow-y-auto rounded-3xl
-          pb-6 pt-10
+          flex max-h-[90vh] max-w-sm
+          flex-col gap-0 overflow-hidden
+          rounded-3xl p-0
         "
       >
-        <DialogTitle className="hidden">
-          {item.name}
-        </DialogTitle>
+        <DialogTitle className="sr-only">{item.name}</DialogTitle>
 
-        <DialogDescription className="hidden">
+        <DialogDescription className="sr-only">
           Product detail
         </DialogDescription>
 
-        <img
-          src={item.image}
-          alt={item.name}
-          className="mb-4 h-44 w-full rounded-2xl object-cover"
-        />
+        {/* ================= VUNG CUON ================= */}
 
-        <h2 className="text-2xl font-bold">
-          {item.name}
-        </h2>
+        <div className="flex-1 overflow-y-auto px-4 pt-10 pb-4">
+          <img
+            src={item.image}
+            alt={item.name}
+            className="mb-4 h-44 w-full rounded-2xl object-cover"
+          />
 
-        <p className="mb-6 text-muted-foreground">
-          {item.description}
-        </p>
+          <h2 className="text-2xl font-bold">{item.name}</h2>
 
-        {/* OPTIONS */}
+          <p className="mb-6 text-muted-foreground">{item.description}</p>
 
-        {optionGroups.map((group) => (
-          <div key={group.id} className="mb-6">
-            <div className="mb-2 flex justify-between">
-              <h3 className="font-semibold">
-                {group.name}
-              </h3>
+          {/* OPTIONS */}
 
-              {group.required && (
-                <span className="text-xs text-red-500">
-                  Required
-                </span>
+          {optionGroups.map((group) => (
+            <div key={group.id} className="mb-6">
+              <div className="mb-2 flex justify-between">
+                <h3 className="font-semibold">{group.name}</h3>
+
+                {group.required && (
+                  <span className="text-xs text-red-500">Required</span>
+                )}
+              </div>
+
+              {group.type === "single" && (
+                <div className="flex flex-wrap gap-2">
+                  {group.options.map((option) => {
+                    const active = selectedOptions[group.id]?.id === option.id;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => selectOption(group, option)}
+                        className={`
+                        rounded-full border px-4 py-2 transition
+                        ${active ? "bg-black text-white" : "bg-white"}
+                      `}
+                      >
+                        {option.name}
+                        {option.price > 0 && ` (+$${option.price})`}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {group.type === "counter" && (
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => decreaseCounter(group)}
+                    className="h-10 w-10 rounded-full border"
+                  >
+                    -
+                  </button>
+
+                  <span className="font-bold">
+                    {counters[group.id] ?? group.defaultValue ?? 0} {group.unit}
+                  </span>
+
+                  <button
+                    onClick={() => increaseCounter(group)}
+                    className="h-10 w-10 rounded-full border"
+                  >
+                    +
+                  </button>
+                </div>
               )}
             </div>
+          ))}
 
-            {group.type === "single" && (
+          {/* ADDONS */}
+
+          {addonGroups.map((group) => (
+            <div key={group.id} className="mb-6">
+              <h3 className="mb-2 font-semibold">{group.name}</h3>
+
               <div className="flex flex-wrap gap-2">
                 {group.options.map((option) => {
-                  const active =
-                    selectedOptions[group.id]?.id === option.id;
+                  const active = selectedAddons[group.id]?.some(
+                    (addon) => addon.id === option.id,
+                  );
 
                   return (
                     <button
                       key={option.id}
-                      type="button"
-                      onClick={() =>
-                        selectOption(group.id, option)
-                      }
+                      onClick={() => toggleAddon(group.id, option)}
                       className={`
-                        rounded-full border px-4 py-2 transition
-                        ${
-                          active
-                            ? "bg-black text-white"
-                            : "bg-white"
-                        }
-                      `}
+                      rounded-full border px-4 py-2
+                      ${active ? "bg-black text-white" : ""}
+                    `}
                     >
                       {option.name}
-                      {option.price > 0 &&
-                        ` (+$${option.price})`}
+                      {option.price > 0 && ` (+$${option.price})`}
                     </button>
                   );
                 })}
               </div>
-            )}
-
-            {group.type === "counter" && (
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => decreaseCounter(group)}
-                  className="h-10 w-10 rounded-full border"
-                >
-                  -
-                </button>
-
-                <span className="font-bold">
-                  {counters[group.id] ??
-                    group.defaultValue ??
-                    0}{" "}
-                  {group.unit}
-                </span>
-
-                <button
-                  onClick={() => increaseCounter(group)}
-                  className="h-10 w-10 rounded-full border"
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* ADDONS */}
-
-        {addonGroups.map((group) => (
-          <div key={group.id} className="mb-6">
-            <h3 className="mb-2 font-semibold">
-              {group.name}
-            </h3>
-
-            <div className="flex flex-wrap gap-2">
-              {group.options.map((option) => {
-                const active =
-                  selectedAddons[group.id]?.some(
-                    (addon) => addon.id === option.id,
-                  );
-
-                return (
-                  <button
-                    key={option.id}
-                    onClick={() =>
-                      toggleAddon(group.id, option)
-                    }
-                    className={`
-                      rounded-full border px-4 py-2
-                      ${
-                        active
-                          ? "bg-black text-white"
-                          : ""
-                      }
-                    `}
-                  >
-                    {option.name}
-                    {option.price > 0 &&
-                      ` (+$${option.price})`}
-                  </button>
-                );
-              })}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
-        <Button
-          disabled={missingRequired}
-          onClick={handleAddToCart}
-          className="sticky bottom-4 w-full"
-        >
-          {isEdit ? (
-            <>
-              <Pencil />
-              Save Changes • ${total.toFixed(2)}
-            </>
-          ) : (
-            <>Add to Cart • ${total.toFixed(2)}</>
-          )}
-        </Button>
+        {/* ================= FOOTER ================= */}
+
+        <div className="shrink-0 border-t bg-popover p-4">
+          <Button
+            disabled={missingRequired}
+            onClick={handleAddToCart}
+            className="w-full"
+          >
+            {isEdit ? (
+              <>
+                <Pencil />
+                Save Changes • ${total.toFixed(2)}
+              </>
+            ) : (
+              <>Add to Cart • ${total.toFixed(2)}</>
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

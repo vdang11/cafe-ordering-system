@@ -30,7 +30,7 @@ function ProductCard({ item }) {
             {item.description}
           </p>
 
-          {item.tags.length > 0 && (
+          {item.tags?.length > 0 && (
             <div className="mt-3 flex gap-2">
               {item.tags.map((tag) => (
                 <span

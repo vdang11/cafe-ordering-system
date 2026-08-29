@@ -16,26 +16,19 @@ function MenuPage() {
 
       <div className="p-4">
         {categories.map((category) => {
-          const items = menuData.filter(
-            (item) => item.category === category,
-          );
+          const items = menuData.filter((item) => item.category === category);
 
           return (
             <section
               id={category}
               key={category}
-              className="mb-10"
+              className="mb-10 scroll-mt-24"
             >
-              <h2 className="mb-4 text-2xl font-bold">
-                {category}
-              </h2>
+              <h2 className="mb-4 text-2xl font-bold">{category}</h2>
 
               <div className="space-y-4">
                 {items.map((item) => (
-                  <ProductCard
-                    key={item.id}
-                    item={item}
-                  />
+                  <ProductCard key={item.id} item={item} />
                 ))}
               </div>
             </section>
