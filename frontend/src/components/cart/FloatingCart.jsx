@@ -2,6 +2,7 @@ import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import useCartStore from "@/store/cartStore";
+import { formatPrice } from "@/lib/formatPrice";
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items);
@@ -40,7 +41,7 @@ function FloatingCart() {
       </div>
 
       <span className="font-bold">
-        ${subtotal.toFixed(2)}
+        {formatPrice(subtotal)}
       </span>
     </Link>
   );

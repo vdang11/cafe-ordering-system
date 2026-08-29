@@ -1,5 +1,6 @@
 import ProductModal from "@/components/menu/ProductModal";
 import useCartStore from "@/store/cartStore";
+import { formatPrice } from "@/lib/formatPrice";
 
 function CartItem({ item }) {
   const increaseQuantity = useCartStore((state) => state.increaseQuantity);
@@ -31,10 +32,10 @@ function CartItem({ item }) {
           <h3 className="text-lg font-semibold">{item.name}</h3>
 
           <p className="text-sm text-gray-400">
-            ${unitPrice.toFixed(2)} × {item.quantity}
+            {formatPrice(unitPrice)} × {item.quantity}
           </p>
 
-          <p className="font-bold">${lineTotal.toFixed(2)}</p>
+          <p className="font-bold">{formatPrice(lineTotal)}</p>
         </div>
 
         {/* QTY */}
@@ -63,7 +64,7 @@ function CartItem({ item }) {
       {selectedOptions.map((option) => (
         <div key={option.id} className="text-sm text-gray-500">
           • {option.name}
-          {option.price > 0 && <> (+${option.price})</>}
+          {option.price > 0 && <> (+{formatPrice(option.price)})</>}
         </div>
       ))}
 
@@ -72,7 +73,7 @@ function CartItem({ item }) {
       {selectedAddons.map((addon) => (
         <div key={addon.id} className="text-sm text-gray-500">
           • {addon.name}
-          {addon.price > 0 && <> (+${addon.price})</>}
+          {addon.price > 0 && <> (+{formatPrice(addon.price)})</>}
         </div>
       ))}
 

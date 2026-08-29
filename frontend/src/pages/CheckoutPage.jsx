@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import useCartStore from "@/store/cartStore";
+import { formatPrice } from "@/lib/formatPrice";
 
 // ===== COMPONENT =====
 
@@ -141,7 +142,7 @@ function CheckoutPage() {
               <div className="flex justify-between">
                 <span>{item.name}</span>
                 <span className="font-bold">
-                  ${(item.totalPrice * item.quantity).toFixed(2)}
+                  {formatPrice(item.totalPrice * item.quantity)}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
@@ -230,7 +231,7 @@ function CheckoutPage() {
         <div className="flex justify-between">
           <span>Total</span>
           <span className="font-bold">
-            ${total.toFixed(2)}
+            {formatPrice(total)}
           </span>
         </div>
       </div>

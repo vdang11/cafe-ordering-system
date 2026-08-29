@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import CartItem from "@/components/cart/CartItem";
 import useCartStore from "@/store/cartStore";
+import { formatPrice } from "@/lib/formatPrice";
 
 function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -82,7 +83,7 @@ function CartPage() {
             </span>
 
             <span className="text-xl font-bold">
-              ${total.toFixed(2)}
+              {formatPrice(total)}
             </span>
           </div>
         </div>

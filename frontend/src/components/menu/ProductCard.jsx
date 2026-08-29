@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 
 import ProductModal from "@/components/menu/ProductModal";
+import { formatPrice } from "@/lib/formatPrice";
 
 function ProductCard({ item }) {
   return (
@@ -22,7 +23,7 @@ function ProductCard({ item }) {
             </h3>
 
             <span className="font-bold">
-              ${item.price}
+              {formatPrice(item.price)}
             </span>
           </div>
 

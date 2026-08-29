@@ -11,6 +11,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import useCartStore from "@/store/cartStore";
+import { formatPrice } from "@/lib/formatPrice";
 
 function ProductModal({
   item,
@@ -247,7 +248,7 @@ function ProductModal({
                       `}
                       >
                         {option.name}
-                        {option.price > 0 && ` (+$${option.price})`}
+                        {option.price > 0 && ` (+${formatPrice(option.price)})`}
                       </button>
                     );
                   })}
@@ -300,7 +301,7 @@ function ProductModal({
                     `}
                     >
                       {option.name}
-                      {option.price > 0 && ` (+$${option.price})`}
+                      {option.price > 0 && ` (+${formatPrice(option.price)})`}
                     </button>
                   );
                 })}
@@ -320,10 +321,10 @@ function ProductModal({
             {isEdit ? (
               <>
                 <Pencil />
-                Save Changes • ${total.toFixed(2)}
+                Save Changes • {formatPrice(total)}
               </>
             ) : (
-              <>Add to Cart • ${total.toFixed(2)}</>
+              <>Add to Cart • {formatPrice(total)}</>
             )}
           </Button>
         </div>
