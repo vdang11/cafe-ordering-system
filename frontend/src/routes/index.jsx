@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import MainLayout from "@/layouts/MainLayout";
 
@@ -44,6 +44,10 @@ function AppRoutes() {
             <SuccessPage />
           </MainLayout>
         }
+      />
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
       />
     </Routes>
   );

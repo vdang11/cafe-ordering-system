@@ -31,7 +31,7 @@ function CheckoutPage() {
         <h1 className="text-3xl font-bold mb-4">Checkout</h1>
         <p className="text-gray-600">Your cart is empty</p>
         <button 
-          onClick={() => navigate("/menu")}
+          onClick={() => navigate("/")}
           className="mt-4 rounded-full bg-black p-4 text-white"
         >
           Continue Shopping
