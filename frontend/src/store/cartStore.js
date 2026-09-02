@@ -102,6 +102,11 @@ const useCartStore = create(
             .filter((item) => item.quantity > 0),
         })),
 
+      removeItem: (cartKey) =>
+        set((state) => ({
+          items: state.items.filter((item) => item.cartKey !== cartKey),
+        })),
+
       clearCart: () =>
         set({
           items: [],
@@ -158,9 +163,11 @@ const useCartStore = create(
     {
       name: "cafe-cart",
 
-      // Bump this whenever the cart item shape changes.
-      // Zustand calls migrate() on an older version instead of loading stale data.
-      version: 1,
+      // Bump this whenever the cart item shape or the menu ids change.
+      // Zustand calls migrate() on an older version instead of loading stale
+      // data. Bumped to 2 when menu item ids were renumbered by category,
+      // because cartKey embeds item.id.
+      version: 2,
 
       // Persist items only. The actions are functions and cannot be serialised.
       partialize: (state) => ({ items: state.items }),

@@ -1,3 +1,5 @@
+import { Trash2 } from "lucide-react";
+
 import ProductModal from "@/components/menu/ProductModal";
 import useCartStore from "@/store/cartStore";
 import { formatPrice } from "@/lib/formatPrice";
@@ -5,6 +7,7 @@ import { formatPrice } from "@/lib/formatPrice";
 function CartItem({ item }) {
   const increaseQuantity = useCartStore((state) => state.increaseQuantity);
   const decreaseQuantity = useCartStore((state) => state.decreaseQuantity);
+  const removeItem = useCartStore((state) => state.removeItem);
 
   const selectedOptions = Object.values(item.selectedOptions || {}).filter(
     Boolean,
@@ -95,9 +98,19 @@ function CartItem({ item }) {
         );
       })}
 
-      {/* ================= EDIT ================= */}
+      {/* ================= ACTIONS ================= */}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-4">
+        <button
+          type="button"
+          onClick={() => removeItem(item.cartKey)}
+          aria-label={`Remove ${item.name} from cart`}
+          className="flex items-center gap-1 text-sm text-red-600"
+        >
+          <Trash2 size={14} />
+          Remove
+        </button>
+
         <ProductModal
           item={item}
           isEdit
@@ -106,9 +119,7 @@ function CartItem({ item }) {
           selectedAddons={item.selectedAddons}
           counters={item.counters}
         >
-          <button className="text-sm underline">
-            Edit
-          </button>
+          <button className="text-sm underline">Edit</button>
         </ProductModal>
       </div>
     </div>

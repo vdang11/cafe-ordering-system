@@ -31,7 +31,7 @@ function CheckoutPage() {
       <div className="p-4 text-center">
         <h1 className="text-3xl font-bold mb-4">Checkout</h1>
         <p className="text-gray-600">Your cart is empty</p>
-        <button 
+        <button
           onClick={() => navigate("/")}
           className="mt-4 rounded-full bg-black p-4 text-white"
         >
@@ -42,7 +42,7 @@ function CheckoutPage() {
   }
 
   function handleOrder() {
-    if (!name || !tableNumber) {
+    if (!name.trim() || !tableNumber.trim()) {
       alert("Please fill required fields");
       return;
     }
@@ -63,11 +63,11 @@ function CheckoutPage() {
     if (!options || Object.keys(options).length === 0) {
       return "";
     }
-    
+
     return Object.values(options)
-      .map(option => option?.name || option)
+      .map((option) => option?.name || option)
       .filter(Boolean)
-      .join(', ');
+      .join(", ");
   }
 
   // Helper function to format addons for display
@@ -75,19 +75,19 @@ function CheckoutPage() {
     if (!addons || Object.keys(addons).length === 0) {
       return "";
     }
-    
+
     const addonList = [];
-    Object.values(addons).forEach(group => {
+    Object.values(addons).forEach((group) => {
       if (Array.isArray(group)) {
-        group.forEach(addon => {
+        group.forEach((addon) => {
           if (addon?.name) {
             addonList.push(addon.name);
           }
         });
       }
     });
-    
-    return addonList.join(', ');
+
+    return addonList.join(", ");
   }
 
   // Function to get a summary of items (first 3 items + count of remaining)
@@ -95,19 +95,19 @@ function CheckoutPage() {
     if (items.length <= 3) {
       return items;
     }
-    
+
     const firstThree = items.slice(0, 3);
     const remainingCount = items.length - 3;
-    
+
     return [
       ...firstThree,
       {
-        id: 'summary',
+        id: "summary",
         name: `+ ${remainingCount} more items`,
         quantity: 1,
         totalPrice: 0,
-        isSummary: true
-      }
+        isSummary: true,
+      },
     ];
   }
 
@@ -115,9 +115,7 @@ function CheckoutPage() {
 
   return (
     <div className="space-y-5 p-4">
-      <h1 className="text-3xl font-bold">
-        Checkout
-      </h1>
+      <h1 className="text-3xl font-bold">Checkout</h1>
 
       {/* Cart Items Display */}
       <div className="space-y-3">
@@ -125,20 +123,25 @@ function CheckoutPage() {
         {itemsToShow.map((item) => {
           if (item.isSummary) {
             return (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 className="rounded-2xl bg-white p-4 border border-gray-200"
               >
                 <div className="flex justify-between items-center">
                   <span className="font-medium">{item.name}</span>
-                  <span className="text-sm text-gray-500">Total items: {items.length}</span>
+                  <span className="text-sm text-gray-500">
+                    Total items: {items.length}
+                  </span>
                 </div>
               </div>
             );
           }
-          
+
           return (
-            <div key={item.cartKey || item.id} className="rounded-2xl bg-white p-4">
+            <div
+              key={item.cartKey || item.id}
+              className="rounded-2xl bg-white p-4"
+            >
               <div className="flex justify-between">
                 <span>{item.name}</span>
                 <span className="font-bold">
@@ -148,27 +151,30 @@ function CheckoutPage() {
               <div className="text-sm text-gray-600">
                 Quantity: {item.quantity}
               </div>
-              {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                <div className="text-sm text-gray-600 mt-1">
-                  Options: {formatOptions(item.selectedOptions)}
-                </div>
-              )}
-              {item.selectedAddons && Object.keys(item.selectedAddons).length > 0 && (
-                <div className="text-sm text-gray-600 mt-1">
-                  Addons: {formatAddons(item.selectedAddons)}
-                </div>
-              )}
+              {item.selectedOptions &&
+                Object.keys(item.selectedOptions).length > 0 && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Options: {formatOptions(item.selectedOptions)}
+                  </div>
+                )}
+              {item.selectedAddons &&
+                Object.keys(item.selectedAddons).length > 0 && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Addons: {formatAddons(item.selectedAddons)}
+                  </div>
+                )}
               {item.counters && Object.keys(item.counters).length > 0 && (
                 <div className="text-sm text-gray-600 mt-1">
-                  Counters: {Object.entries(item.counters)
+                  Counters:{" "}
+                  {Object.entries(item.counters)
                     .map(([key, value]) => `${key}: ${value}`)
-                    .join(', ')}
+                    .join(", ")}
                 </div>
               )}
             </div>
           );
         })}
-        
+
         {items.length > 3 && (
           <button
             onClick={() => setShowAllItems(!showAllItems)}
@@ -182,11 +188,14 @@ function CheckoutPage() {
       {/* Name */}
 
       <div className="space-y-2">
-        <label className="font-medium">
+        <label htmlFor="customer-name" className="font-medium">
           Customer Name
         </label>
 
         <input
+          id="customer-name"
+          name="customerName"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your name"
@@ -197,11 +206,14 @@ function CheckoutPage() {
       {/* Table */}
 
       <div className="space-y-2">
-        <label className="font-medium">
+        <label htmlFor="table-number" className="font-medium">
           Table Number
         </label>
 
         <input
+          id="table-number"
+          name="tableNumber"
+          inputMode="numeric"
           value={tableNumber}
           onChange={(e) => setTableNumber(e.target.value)}
           placeholder="Enter table number"
@@ -212,11 +224,13 @@ function CheckoutPage() {
       {/* Notes */}
 
       <div className="space-y-2">
-        <label className="font-medium">
+        <label htmlFor="special-instructions" className="font-medium">
           Special Instructions
         </label>
 
         <textarea
+          id="special-instructions"
+          name="specialInstructions"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any special requests or notes..."
@@ -230,9 +244,7 @@ function CheckoutPage() {
       <div className="rounded-3xl bg-white p-4">
         <div className="flex justify-between">
           <span>Total</span>
-          <span className="font-bold">
-            {formatPrice(total)}
-          </span>
+          <span className="font-bold">{formatPrice(total)}</span>
         </div>
       </div>
 

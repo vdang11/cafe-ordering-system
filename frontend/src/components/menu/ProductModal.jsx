@@ -44,7 +44,20 @@ function ProductForm({
     initialSelectedAddons || {},
   );
 
-  const [counters, setCounters] = useState(initialCounters || {});
+  // Seed every counter group from its default so what the form shows and what
+  // it stores always agree. Without this a group with a non-zero defaultValue
+  // would render that value while storing nothing.
+  const [counters, setCounters] = useState(() => {
+    const seeded = {};
+
+    for (const group of optionGroups) {
+      if (group.type === "counter") {
+        seeded[group.id] = group.defaultValue ?? 0;
+      }
+    }
+
+    return { ...seeded, ...(initialCounters || {}) };
+  });
 
   // =====================================================
   // OPTION
@@ -76,26 +89,34 @@ function ProductForm({
   // COUNTER
   // =====================================================
 
+  // Both counters read the previous value from the updater rather than from the
+  // render closure. Reading `counters` directly meant several clicks batched
+  // into one render all saw the same starting value and collapsed into a single
+  // step. group.max and group.min may also be missing once the menu comes from
+  // an API, and comparing against undefined is always false, which would let the
+  // count run unbounded.
   function increaseCounter(group) {
-    const current = counters[group.id] ?? group.defaultValue ?? 0;
+    const max = group.max ?? Infinity;
 
-    if (current >= group.max) return;
+    setCounters((prev) => {
+      const current = prev[group.id] ?? group.defaultValue ?? 0;
 
-    setCounters((prev) => ({
-      ...prev,
-      [group.id]: current + 1,
-    }));
+      if (current >= max) return prev;
+
+      return { ...prev, [group.id]: current + 1 };
+    });
   }
 
   function decreaseCounter(group) {
-    const current = counters[group.id] ?? group.defaultValue ?? 0;
+    const min = group.min ?? 0;
 
-    if (current <= group.min) return;
+    setCounters((prev) => {
+      const current = prev[group.id] ?? group.defaultValue ?? 0;
 
-    setCounters((prev) => ({
-      ...prev,
-      [group.id]: current - 1,
-    }));
+      if (current <= min) return prev;
+
+      return { ...prev, [group.id]: current - 1 };
+    });
   }
 
   // =====================================================
@@ -159,10 +180,8 @@ function ProductForm({
 
     if (cartKey) {
       updateItem(cartKey, updatedItem);
-      console.log("Item updated:", updatedItem);
     } else {
       addItem(updatedItem);
-      console.log("Item added to cart:", updatedItem);
     }
 
     onDone();
