@@ -103,7 +103,9 @@ Context is never used as a substitute for Zustand — business state always live
 
 ## Documentation
 
-Architecture and business rules are not yet kept in this repository. When they are added, they belong under `docs/`:
+- [`docs/api-contract.md`](docs/api-contract.md) — the JSON contract between the frontend and the Spring Boot backend. Read it before changing either side.
+
+Still to be written, under the same directory:
 
 - `docs/architecture.md` — product inspiration & state philosophy
 - `docs/business/` — ordering flow, order routing rules
