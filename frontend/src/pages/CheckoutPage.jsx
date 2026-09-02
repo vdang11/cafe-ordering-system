@@ -15,9 +15,11 @@ function CheckoutPage() {
   const clearCart = useCartStore((state) => state.clearCart);
 
   const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [showAllItems, setShowAllItems] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fixed total calculation using totalPrice from cart items
   const total = items.reduce(
@@ -42,6 +44,11 @@ function CheckoutPage() {
   }
 
   function handleOrder() {
+    // Submitting is synchronous today, so this cannot fire twice yet. It is here
+    // for when placing an order becomes a request: the guard, the disabled
+    // button and the pending label all need to exist before that call is added.
+    if (isSubmitting) return;
+
     if (!name.trim() || !tableNumber.trim()) {
       alert("Please fill required fields");
       return;
@@ -52,6 +59,8 @@ function CheckoutPage() {
       alert("Please enter a valid table number");
       return;
     }
+
+    setIsSubmitting(true);
 
     clearCart();
 
@@ -203,6 +212,26 @@ function CheckoutPage() {
         />
       </div>
 
+      {/* Phone (optional) */}
+
+      <div className="space-y-2">
+        <label htmlFor="phone-number" className="font-medium">
+          Phone Number <span className="text-sm text-gray-400">(optional)</span>
+        </label>
+
+        <input
+          id="phone-number"
+          name="phoneNumber"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          placeholder="Enter your phone number"
+          className="w-full rounded-2xl border bg-white p-4"
+        />
+      </div>
+
       {/* Table */}
 
       <div className="space-y-2">
@@ -250,9 +279,10 @@ function CheckoutPage() {
 
       <button
         onClick={handleOrder}
-        className="w-full rounded-full bg-black p-4 text-white"
+        disabled={isSubmitting}
+        className="w-full rounded-full bg-black p-4 text-white disabled:opacity-50"
       >
-        Place Order
+        {isSubmitting ? "Placing Order..." : "Place Order"}
       </button>
     </div>
   );
