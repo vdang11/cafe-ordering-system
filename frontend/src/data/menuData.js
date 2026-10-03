@@ -227,7 +227,7 @@ const menuData = [
     category: "Cold Drink",
 
     image:
-      "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+      "https://images.unsplash.com/photo-1749104028327-a33087ea4f47",
 
     description:
       "Fresh strawberry matcha",
