@@ -6,7 +6,7 @@ Customers scan a QR code at their table, browse the menu, customize items, and p
 
 ## Project Status
 
-The **frontend** is in active development (React + Vite). The **backend** (Spring Boot) and **database** (MySQL) are planned but not yet implemented — the frontend currently uses local mock menu data and the checkout does not submit anywhere.
+The **frontend** is in active development (React + Vite). The **backend** (Spring Boot) and **database** (MySQL) are planned but not yet implemented. The frontend already loads the menu through the API layer described in [`docs/api-contract.md`](docs/api-contract.md), but serves it from local mock data while `VITE_USE_MOCK_MENU=true`. Checkout does not submit anywhere yet.
 
 Sections below marked *(planned)* describe the intended design and are not implemented yet.
 
@@ -15,7 +15,7 @@ Sections below marked *(planned)* describe the intended design and are not imple
 | Layer    | Technology |
 |----------|------------|
 | Frontend | React 19, Vite, Tailwind CSS v4, Zustand, React Router, Framer Motion, Radix UI / shadcn |
-| Data fetching | TanStack Query *(installed, not wired up yet)* |
+| Data fetching | TanStack Query, over a small `fetch` client in `api/client.js` |
 | Backend  | Spring Boot 3, Java 21, Spring Modulith *(planned)* |
 | Database | MySQL 8 *(planned)* |
 
@@ -23,20 +23,18 @@ Sections below marked *(planned)* describe the intended design and are not imple
 
 ```
 cafe-ordering-system/
+├── docs/                     # api-contract.md
 └── frontend/                 # React + Vite app (see frontend/README.md)
     └── src/
         ├── pages/            # MenuPage, CartPage, CheckoutPage, SuccessPage
         ├── components/       # cart/, menu/, ui/ (shadcn primitives)
-        ├── store/            # Zustand stores (cartStore)
+        ├── store/            # Zustand stores (cartStore: cart lines as ids)
+        ├── hooks/            # useMenu (menu query), useCart (cart joined with the menu)
+        ├── api/              # HTTP client (client.js) and endpoint functions (menu.js)
+        ├── lib/              # formatPrice, normalizeMenu, cart pricing (cart.js), cn
+        ├── data/             # Mock menu data & modifier presets, served while VITE_USE_MOCK_MENU=true
         ├── routes/           # React Router route definitions
-        ├── layouts/          # MainLayout
-        ├── data/             # Mock menu data & modifier presets
-        ├── constants/        # Shared constants (categories)
-        ├── lib/              # Helpers (cn, formatPrice)
-        ├── assets/           # Local images
-        ├── api/              # HTTP client & endpoints (empty until the backend exists)
-        ├── hooks/            # Shared React hooks (empty)
-        └── types/            # Shared type definitions (empty)
+        └── layouts/          # MainLayout
 ```
 
 ## Getting Started
@@ -44,23 +42,31 @@ cafe-ordering-system/
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local   # then adjust it for your machine
 npm run dev       # start dev server at http://localhost:5173
 npm run build     # production build
 npm run lint      # run ESLint
 npm run preview   # preview production build
 ```
 
+| Variable | Purpose |
+|----------|---------|
+| `VITE_API_URL` | Base URL of the Spring Boot API. Defaults to `/api` when unset. |
+| `VITE_USE_MOCK_MENU` | `true` serves the menu from `src/data/menuData.js`. Set it to `false` once `GET /api/menu` is live. There is deliberately no automatic fallback to the mock when the API fails, so an outage can never show stale prices. |
+
+Vite reads env files only at startup: restart the dev server after changing either variable.
+
 ## Conventions
 
 - **Language** — everything committed to this repository is written in English: code, identifiers, comments, commit messages, and docs.
 - **Currency** — all prices are Australian dollars. Every price is rendered through `lib/formatPrice.js`, which pins the locale to `en-AU` and uses `currencyDisplay: "narrowSymbol"` so the output is always a plain `$8.50` — never `A$8.50` or `AUD 8.50`. Do not format prices inline.
-- **Money arithmetic** — prices are currently JavaScript numbers. This is exact for the present data (every price is a whole number or a `.5`) but will drift once a price such as `$3.30` appears. Totals should move to the backend using `DECIMAL(10,2)` / `BigDecimal`.
+- **Money** — the API sends prices as strings (`"6.50"`), and `lib/normalizeMenu.js` converts them to numbers once, at the boundary. Prices in the frontend are for display only: `formatPrice` rounds what is shown to two decimals, and the server recomputes every total from `DECIMAL(10,2)` / `BigDecimal` when an order is placed. The client never sends a price.
 
 ## Ordering Flow
 
 ```
 Scan QR → Menu → Browse Categories → Product Modal (customize) →
-Add to Cart → Floating Cart → Cart Review → Checkout (name + table) →
+Add to Cart → Floating Cart → Cart Review → Checkout (name, optional phone, table) →
 Submit Order → Success Page
 ```
 
@@ -69,6 +75,8 @@ Rules:
 - The Product Modal closes automatically after **Add To Cart** / **Save Changes**.
 - Cart subtotal and the floating cart update instantly — no page refresh.
 - Cart state survives route navigation and a full page reload; it is persisted to `localStorage` under the key `cafe-cart`.
+- A cart line stores only the product id, the chosen option ids and the quantity. Names and prices are looked up in the current menu every time the cart is shown, so a price change reaches carts that already hold the product.
+- A line whose product or chosen option has left the menu, or whose product is unavailable, is flagged: it is left out of the subtotal, can only be removed, and blocks checkout.
 - Two items with the same product and the same configuration collapse into a single line, regardless of the order the modifiers were chosen in. Editing a line re-merges it if it comes to match another line.
 
 ### Routes
@@ -92,11 +100,12 @@ Every product will belong to a **station**, not a category. Categories change; s
 
 When an order is placed, the backend splits items by station and generates a separate docket for each, printed on thermal docket printers. Kitchen never receives drinks; Front of House never receives kitchen food.
 
-Not implemented yet — menu items currently carry a `category` only, with no `station` field.
+Products already carry a `station`: the API sends it, and for the mock menu `lib/normalizeMenu.js` derives it (Food goes to the kitchen, everything else to front of house). Splitting an order into dockets is not implemented yet.
 
 ## State Management
 
 - **Zustand** — high-frequency, global business state: cart, and later order session, authentication, inventory cache.
+- **TanStack Query** — server state: the menu today, orders later. The menu is cached for five minutes and is not refetched when the window regains focus.
 - **React Context** *(planned)* — cross-cutting app configuration: theme, store info, table info, feature flags.
 
 Context is never used as a substitute for Zustand — business state always lives in Zustand.

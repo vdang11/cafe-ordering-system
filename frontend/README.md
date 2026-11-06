@@ -1,16 +1,23 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The customer-facing ordering app: React 19 + Vite, Tailwind CSS v4, Zustand for the cart and TanStack Query for the menu.
 
-Currently, two official plugins are available:
+The project overview, conventions and ordering rules live in the [root README](../README.md). The JSON exchanged with the backend is defined in [`docs/api-contract.md`](../docs/api-contract.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run
 
-## React Compiler
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+`.env.example` documents both variables. While the backend does not exist, keep `VITE_USE_MOCK_MENU=true`.
 
-## Expanding the ESLint configuration
+## Where things live
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `src/hooks/useMenu.js` loads the menu, from the API or from the mock depending on `VITE_USE_MOCK_MENU`.
+- `src/lib/normalizeMenu.js` turns either source into the contract's shape before any component sees it.
+- `src/store/cartStore.js` holds cart lines as ids only.
+- `src/lib/cart.js` prices a selection and builds its modifier labels; the product modal and the cart both use it.
+- `src/hooks/useCart.js` joins the cart with the menu and is the one place the subtotal is computed.
