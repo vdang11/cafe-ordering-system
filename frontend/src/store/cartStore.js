@@ -1,56 +1,22 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-function createCartKey(item) {
-  const options = Object.entries(item.selectedOptions || {})
-    .filter(([, option]) => Boolean(option))
-    .map(([groupId, option]) => `${groupId}:${option.id}`)
-    .sort();
+import { createCartKey } from "@/lib/cart";
 
-  const addons = Object.entries(item.selectedAddons || {})
-    .flatMap(([groupId, list]) =>
-      (list || []).filter(Boolean).map((addon) => `${groupId}:${addon.id}`),
-    )
-    .sort();
-
-  const counters = Object.entries(item.counters || {})
-    .filter(([, value]) => value > 0)
-    .map(([groupId, value]) => `${groupId}:${value}`)
-    .sort();
-
-  return [item.id, ...options, ...addons, ...counters].join("|");
-}
-
-function calculateTotalPrice(item) {
-  // Calculate based on item price + option price + addon price
-  const optionPrice = Object.values(item.selectedOptions || {})
-    .filter(Boolean)
-    .reduce((sum, option) => sum + (option.price || 0), 0);
-
-  const addonPrice = Object.values(item.selectedAddons || {})
-    .flat()
-    .filter(Boolean)
-    .reduce((sum, addon) => sum + (addon.price || 0), 0);
-
-  const basePrice = item.price || 0;
-
-  return basePrice + optionPrice + addonPrice;
-}
-
+// Lines hold ids only, never names or prices. See lib/cart.js for the shape,
+// and hooks/useCart.js for joining them with the menu.
 const useCartStore = create(
   persist(
     (set) => ({
       items: [],
 
-      addItem: (newItem) =>
+      addItem: (productId, selection) =>
         set((state) => {
-          const cartKey = createCartKey(newItem);
+          const cartKey = createCartKey(productId, selection);
 
-          const existingItem = state.items.find(
-            (item) => item.cartKey === cartKey,
-          );
+          const exists = state.items.some((item) => item.cartKey === cartKey);
 
-          if (existingItem) {
+          if (exists) {
             return {
               items: state.items.map((item) =>
                 item.cartKey === cartKey
@@ -67,10 +33,10 @@ const useCartStore = create(
             items: [
               ...state.items,
               {
-                ...newItem,
                 cartKey,
+                productId,
+                ...selection,
                 quantity: 1,
-                totalPrice: calculateTotalPrice(newItem),
               },
             ],
           };
@@ -112,16 +78,17 @@ const useCartStore = create(
           items: [],
         }),
 
-      updateItem: (cartKey, updatedItem) =>
+      updateItem: (cartKey, selection) =>
         set((state) => {
           const target = state.items.find((item) => item.cartKey === cartKey);
 
           if (!target) return state;
 
-          const merged = { ...target, ...updatedItem };
-
-          merged.cartKey = createCartKey(merged);
-          merged.totalPrice = calculateTotalPrice(merged);
+          const merged = {
+            ...target,
+            ...selection,
+            cartKey: createCartKey(target.productId, selection),
+          };
 
           // Configuration unchanged -> replace in place
           if (merged.cartKey === cartKey) {
@@ -163,11 +130,13 @@ const useCartStore = create(
     {
       name: "cafe-cart",
 
-      // Bump this whenever the cart item shape or the menu ids change.
+      // Bump this whenever the cart line shape or the menu ids change.
       // Zustand calls migrate() on an older version instead of loading stale
-      // data. Bumped to 2 when menu item ids were renumbered by category,
-      // because cartKey embeds item.id.
-      version: 2,
+      // data.
+      //   2: menu item ids were renumbered by category, and cartKey embeds
+      //      the id.
+      //   3: lines store ids only, with no names or prices.
+      version: 3,
 
       // Persist items only. The actions are functions and cannot be serialised.
       partialize: (state) => ({ items: state.items }),

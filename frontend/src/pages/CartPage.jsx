@@ -1,30 +1,24 @@
 import { Link } from "react-router-dom";
 
 import CartItem from "@/components/cart/CartItem";
-import useCartStore from "@/store/cartStore";
+import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/formatPrice";
 
 function CartPage() {
-  const items = useCartStore((state) => state.items);
+  const {
+    lines,
+    isEmpty,
+    totalQuantity,
+    subtotal,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useCart();
 
-  // =====================================================
-  // SUBTOTAL
-  // =====================================================
-
-  const total = items.reduce(
-    (sum, item) =>
-      sum + (item.totalPrice || item.price) * item.quantity,
-    0,
-  );
-
-  // =====================================================
-  // TOTAL ITEM COUNT
-  // =====================================================
-
-  const totalItems = items.reduce(
-    (sum, item) => sum + item.quantity,
-    0,
-  );
+  // The cart holds ids, so its lines can only be shown once the menu they
+  // point at has loaded.
+  const ready = !isEmpty && !isPending && !isError;
 
   return (
     <div className="min-h-screen space-y-4 bg-neutral-100 p-4 pb-32">
@@ -37,9 +31,9 @@ function CartPage() {
           Your Cart
         </h1>
 
-        {items.length > 0 && (
+        {!isEmpty && (
           <p className="mt-1 text-gray-500">
-            {totalItems} item{totalItems > 1 ? "s" : ""}
+            {totalQuantity} item{totalQuantity > 1 ? "s" : ""}
           </p>
         )}
       </div>
@@ -48,7 +42,7 @@ function CartPage() {
       {/* EMPTY */}
       {/* ================================= */}
 
-      {items.length === 0 && (
+      {isEmpty && (
         <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
           <p className="text-lg font-medium">
             Cart empty
@@ -61,21 +55,48 @@ function CartPage() {
       )}
 
       {/* ================================= */}
+      {/* MENU LOADING / ERROR */}
+      {/* ================================= */}
+
+      {!isEmpty && isPending && (
+        <p className="p-8 text-center text-muted-foreground">
+          Loading cart...
+        </p>
+      )}
+
+      {!isEmpty && isError && (
+        <div className="space-y-4 rounded-3xl bg-white p-8 text-center">
+          <p className="font-medium">Could not load the menu</p>
+
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-full bg-black px-6 py-3 text-white"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* ================================= */}
       {/* CART ITEMS */}
       {/* ================================= */}
 
-      {items.map((item) => (
-        <CartItem
-          key={item.cartKey}
-          item={item}
-        />
-      ))}
+      {ready &&
+        lines.map((line) => (
+          <CartItem
+            key={line.cartKey}
+            line={line}
+          />
+        ))}
 
       {/* ================================= */}
       {/* SUMMARY */}
       {/* ================================= */}
 
-      {items.length > 0 && (
+      {ready && (
         <div className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">
@@ -83,7 +104,7 @@ function CartPage() {
             </span>
 
             <span className="text-xl font-bold">
-              {formatPrice(total)}
+              {formatPrice(subtotal)}
             </span>
           </div>
         </div>
@@ -93,7 +114,7 @@ function CartPage() {
       {/* CHECKOUT */}
       {/* ================================= */}
 
-      {items.length > 0 && (
+      {ready && (
         <Link
           to="/checkout"
           className="

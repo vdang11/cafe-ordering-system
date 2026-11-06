@@ -1,25 +1,15 @@
 import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import useCartStore from "@/store/cartStore";
+import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/formatPrice";
 
 function FloatingCart() {
-  const items = useCartStore((state) => state.items);
+  const { isEmpty, totalQuantity, subtotal } = useCart();
 
-  if (!items.length) {
+  if (isEmpty) {
     return null;
   }
-
-  const totalQuantity = items.reduce(
-    (sum, item) => sum + item.quantity,
-    0,
-  );
-
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.totalPrice * item.quantity,
-    0,
-  );
 
   return (
     <Link

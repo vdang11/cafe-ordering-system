@@ -5,7 +5,7 @@ import { formatPrice } from "@/lib/formatPrice";
 
 function ProductCard({ item }) {
   return (
-    <ProductModal item={item} isEdit={false}>
+    <ProductModal product={item} isEdit={false}>
       <motion.div
         whileTap={{ scale: 0.98 }}
         className="flex gap-4 rounded-3xl border bg-white p-4 shadow-sm"

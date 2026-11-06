@@ -4,15 +4,29 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import useCartStore from "@/store/cartStore";
+import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/formatPrice";
+
+// How many lines the order summary shows before "Show All".
+const SUMMARY_LIMIT = 3;
 
 // ===== COMPONENT =====
 
 function CheckoutPage() {
   const navigate = useNavigate();
 
-  const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+
+  const {
+    lines,
+    isEmpty,
+    subtotal,
+    hasUnavailable,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useCart();
 
   const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -21,14 +35,8 @@ function CheckoutPage() {
   const [showAllItems, setShowAllItems] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fixed total calculation using totalPrice from cart items
-  const total = items.reduce(
-    (sum, item) => sum + (item.totalPrice || 0) * item.quantity,
-    0,
-  );
-
   // Check if cart is empty
-  if (items.length === 0) {
+  if (isEmpty) {
     return (
       <div className="p-4 text-center">
         <h1 className="text-3xl font-bold mb-4">Checkout</h1>
@@ -43,11 +51,41 @@ function CheckoutPage() {
     );
   }
 
+  // The cart holds ids, so nothing can be priced until the menu has loaded.
+  if (isPending) {
+    return (
+      <p className="p-8 text-center text-muted-foreground">
+        Loading your order...
+      </p>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4 p-8 text-center">
+        <p className="font-medium">Could not load the menu</p>
+
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="rounded-full bg-black px-6 py-3 text-white"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   function handleOrder() {
     // Submitting is synchronous today, so this cannot fire twice yet. It is here
     // for when placing an order becomes a request: the guard, the disabled
     // button and the pending label all need to exist before that call is added.
     if (isSubmitting) return;
+
+    // A line that no longer matches the menu would be rejected by the server.
+    if (hasUnavailable) return;
 
     if (!name.trim() || !tableNumber.trim()) {
       alert("Please fill required fields");
@@ -67,60 +105,8 @@ function CheckoutPage() {
     navigate("/success");
   }
 
-  // Helper function to format options for display
-  function formatOptions(options) {
-    if (!options || Object.keys(options).length === 0) {
-      return "";
-    }
-
-    return Object.values(options)
-      .map((option) => option?.name || option)
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  // Helper function to format addons for display
-  function formatAddons(addons) {
-    if (!addons || Object.keys(addons).length === 0) {
-      return "";
-    }
-
-    const addonList = [];
-    Object.values(addons).forEach((group) => {
-      if (Array.isArray(group)) {
-        group.forEach((addon) => {
-          if (addon?.name) {
-            addonList.push(addon.name);
-          }
-        });
-      }
-    });
-
-    return addonList.join(", ");
-  }
-
-  // Function to get a summary of items (first 3 items + count of remaining)
-  function getItemsSummary() {
-    if (items.length <= 3) {
-      return items;
-    }
-
-    const firstThree = items.slice(0, 3);
-    const remainingCount = items.length - 3;
-
-    return [
-      ...firstThree,
-      {
-        id: "summary",
-        name: `+ ${remainingCount} more items`,
-        quantity: 1,
-        totalPrice: 0,
-        isSummary: true,
-      },
-    ];
-  }
-
-  const itemsToShow = showAllItems ? items : getItemsSummary();
+  const visibleLines = showAllItems ? lines : lines.slice(0, SUMMARY_LIMIT);
+  const hiddenCount = lines.length - visibleLines.length;
 
   return (
     <div className="space-y-5 p-4">
@@ -129,67 +115,54 @@ function CheckoutPage() {
       {/* Cart Items Display */}
       <div className="space-y-3">
         <h2 className="text-xl font-semibold">Order Summary</h2>
-        {itemsToShow.map((item) => {
-          if (item.isSummary) {
-            return (
-              <div
-                key={item.id}
-                className="rounded-2xl bg-white p-4 border border-gray-200"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{item.name}</span>
-                  <span className="text-sm text-gray-500">
-                    Total items: {items.length}
-                  </span>
-                </div>
-              </div>
-            );
-          }
 
-          return (
-            <div
-              key={item.cartKey || item.id}
-              className="rounded-2xl bg-white p-4"
-            >
-              <div className="flex justify-between">
-                <span>{item.name}</span>
+        {visibleLines.map((line) => (
+          <div key={line.cartKey} className="rounded-2xl bg-white p-4">
+            <div className="flex justify-between">
+              <span>{line.product?.name ?? "Unavailable item"}</span>
+
+              {!line.unavailable && (
                 <span className="font-bold">
-                  {formatPrice(item.totalPrice * item.quantity)}
+                  {formatPrice(line.lineTotal)}
                 </span>
-              </div>
-              <div className="text-sm text-gray-600">
-                Quantity: {item.quantity}
-              </div>
-              {item.selectedOptions &&
-                Object.keys(item.selectedOptions).length > 0 && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Options: {formatOptions(item.selectedOptions)}
-                  </div>
-                )}
-              {item.selectedAddons &&
-                Object.keys(item.selectedAddons).length > 0 && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Addons: {formatAddons(item.selectedAddons)}
-                  </div>
-                )}
-              {item.counters && Object.keys(item.counters).length > 0 && (
-                <div className="text-sm text-gray-600 mt-1">
-                  Counters:{" "}
-                  {Object.entries(item.counters)
-                    .map(([key, value]) => `${key}: ${value}`)
-                    .join(", ")}
-                </div>
               )}
             </div>
-          );
-        })}
 
-        {items.length > 3 && (
+            <div className="text-sm text-gray-600">
+              Quantity: {line.quantity}
+            </div>
+
+            {line.modifiers.length > 0 && (
+              <div className="text-sm text-gray-600 mt-1">
+                {line.modifiers.map((modifier) => modifier.label).join(", ")}
+              </div>
+            )}
+
+            {line.unavailable && (
+              <div className="text-sm text-red-600 mt-1">
+                No longer available
+              </div>
+            )}
+          </div>
+        ))}
+
+        {hiddenCount > 0 && (
+          <div className="rounded-2xl bg-white p-4 border border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">+ {hiddenCount} more items</span>
+              <span className="text-sm text-gray-500">
+                Total items: {lines.length}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {lines.length > SUMMARY_LIMIT && (
           <button
             onClick={() => setShowAllItems(!showAllItems)}
             className="w-full py-2 text-center text-blue-600 hover:text-blue-800"
           >
-            {showAllItems ? "Show Less" : `Show All ${items.length} Items`}
+            {showAllItems ? "Show Less" : `Show All ${lines.length} Items`}
           </button>
         )}
       </div>
@@ -273,13 +246,19 @@ function CheckoutPage() {
       <div className="rounded-3xl bg-white p-4">
         <div className="flex justify-between">
           <span>Total</span>
-          <span className="font-bold">{formatPrice(total)}</span>
+          <span className="font-bold">{formatPrice(subtotal)}</span>
         </div>
       </div>
 
+      {hasUnavailable && (
+        <p className="text-center text-sm text-red-600">
+          Remove the unavailable items from your cart to place the order.
+        </p>
+      )}
+
       <button
         onClick={handleOrder}
-        disabled={isSubmitting}
+        disabled={isSubmitting || hasUnavailable}
         className="w-full rounded-full bg-black p-4 text-white disabled:opacity-50"
       >
         {isSubmitting ? "Placing Order..." : "Place Order"}

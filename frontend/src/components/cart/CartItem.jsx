@@ -4,27 +4,13 @@ import ProductModal from "@/components/menu/ProductModal";
 import useCartStore from "@/store/cartStore";
 import { formatPrice } from "@/lib/formatPrice";
 
-function CartItem({ item }) {
+// `line` is a cart line already joined with the menu by useCart().
+function CartItem({ line }) {
   const increaseQuantity = useCartStore((state) => state.increaseQuantity);
   const decreaseQuantity = useCartStore((state) => state.decreaseQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
 
-  const selectedOptions = Object.values(item.selectedOptions || {}).filter(
-    Boolean,
-  );
-
-  const selectedAddons = Object.values(item.selectedAddons || {})
-    .flat()
-    .filter(Boolean);
-
-  // Option groups from the menu item, used to look up a counter's name and unit
-  const optionGroups = item.optionGroups ?? item.modifierGroups ?? [];
-
-  // Price for a single unit (options and addons included), computed by the store
-  const unitPrice = item.totalPrice ?? item.price ?? 0;
-
-  // Line total = unit price x quantity
-  const lineTotal = unitPrice * (item.quantity ?? 1);
+  const name = line.product?.name ?? "Unavailable item";
 
   return (
     <div className="bg-white rounded-3xl border p-4 space-y-3">
@@ -32,29 +18,37 @@ function CartItem({ item }) {
 
       <div className="flex justify-between">
         <div>
-          <h3 className="text-lg font-semibold">{item.name}</h3>
+          <h3 className="text-lg font-semibold">{name}</h3>
 
-          <p className="text-sm text-gray-400">
-            {formatPrice(unitPrice)} × {item.quantity}
-          </p>
+          {line.unavailable ? (
+            <p className="text-sm text-red-600">
+              No longer available. Remove it to place your order.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-400">
+                {formatPrice(line.unitPrice)} × {line.quantity}
+              </p>
 
-          <p className="font-bold">{formatPrice(lineTotal)}</p>
+              <p className="font-bold">{formatPrice(line.lineTotal)}</p>
+            </>
+          )}
         </div>
 
         {/* QTY */}
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => decreaseQuantity(item.cartKey)}
+            onClick={() => decreaseQuantity(line.cartKey)}
             className="h-8 w-8 rounded-full border"
           >
             -
           </button>
 
-          <span>{item.quantity}</span>
+          <span>{line.quantity}</span>
 
           <button
-            onClick={() => increaseQuantity(item.cartKey)}
+            onClick={() => increaseQuantity(line.cartKey)}
             className="h-8 w-8 rounded-full border"
           >
             +
@@ -62,65 +56,44 @@ function CartItem({ item }) {
         </div>
       </div>
 
-      {/* ================= OPTIONS ================= */}
+      {/* ================= MODIFIERS ================= */}
 
-      {selectedOptions.map((option) => (
-        <div key={option.id} className="text-sm text-gray-500">
-          • {option.name}
-          {option.price > 0 && <> (+{formatPrice(option.price)})</>}
+      {line.modifiers.map((modifier) => (
+        <div key={modifier.key} className="text-sm text-gray-500">
+          • {modifier.label}
+          {modifier.price > 0 && <> (+{formatPrice(modifier.price)})</>}
         </div>
       ))}
-
-      {/* ================= ADDONS ================= */}
-
-      {selectedAddons.map((addon) => (
-        <div key={addon.id} className="text-sm text-gray-500">
-          • {addon.name}
-          {addon.price > 0 && <> (+{formatPrice(addon.price)})</>}
-        </div>
-      ))}
-
-      {/* ================= COUNTERS ================= */}
-
-      {Object.entries(item.counters || {}).map(([groupId, value]) => {
-        if (!value) return null;
-
-        const group = optionGroups.find((g) => g.id === groupId);
-
-        const unit = group?.unit ? `${group.unit} ` : "";
-        const label = group?.name ?? groupId;
-
-        return (
-          <div key={groupId} className="text-sm text-gray-500">
-            • {value} {unit}
-            {label}
-          </div>
-        );
-      })}
 
       {/* ================= ACTIONS ================= */}
 
       <div className="flex justify-end gap-4">
         <button
           type="button"
-          onClick={() => removeItem(item.cartKey)}
-          aria-label={`Remove ${item.name} from cart`}
+          onClick={() => removeItem(line.cartKey)}
+          aria-label={`Remove ${name} from cart`}
           className="flex items-center gap-1 text-sm text-red-600"
         >
           <Trash2 size={14} />
           Remove
         </button>
 
-        <ProductModal
-          item={item}
-          isEdit
-          cartKey={item.cartKey}
-          selectedOptions={item.selectedOptions}
-          selectedAddons={item.selectedAddons}
-          counters={item.counters}
-        >
-          <button className="text-sm underline">Edit</button>
-        </ProductModal>
+        {/* A line that no longer matches the menu cannot be edited back into
+            shape reliably, so it can only be removed. */}
+        {!line.unavailable && (
+          <ProductModal
+            product={line.product}
+            isEdit
+            cartKey={line.cartKey}
+            selection={{
+              options: line.options,
+              addons: line.addons,
+              counters: line.counters,
+            }}
+          >
+            <button className="text-sm underline">Edit</button>
+          </ProductModal>
+        )}
       </div>
     </div>
   );

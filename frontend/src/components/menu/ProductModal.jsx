@@ -12,37 +12,23 @@ import {
 import { Button } from "@/components/ui/button";
 import useCartStore from "@/store/cartStore";
 import { formatPrice } from "@/lib/formatPrice";
+import { resolveSelection } from "@/lib/cart";
 
-function ProductForm({
-  item,
-  cartKey,
-  isEdit,
-  selectedOptions: initialSelectedOptions,
-  selectedAddons: initialSelectedAddons,
-  counters: initialCounters,
-  onDone,
-}) {
+function ProductForm({ product, cartKey, isEdit, selection, onDone }) {
   const addItem = useCartStore((state) => state.addItem);
   const updateItem = useCartStore((state) => state.updateItem);
 
-  // =====================================================
-  // GROUPS
-  // =====================================================
-
-  const optionGroups = item.optionGroups ?? item.modifierGroups ?? [];
-  const addonGroups = item.addonGroups ?? [];
+  const { optionGroups, addonGroups } = product;
 
   // =====================================================
   // STATE
   // =====================================================
 
-  const [selectedOptions, setSelectedOptions] = useState(
-    initialSelectedOptions || {},
-  );
+  // Choices are kept as ids, the same shape the cart stores:
+  // options { [groupId]: optionId }, addons { [groupId]: [optionId] }.
+  const [options, setOptions] = useState(selection?.options ?? {});
 
-  const [selectedAddons, setSelectedAddons] = useState(
-    initialSelectedAddons || {},
-  );
+  const [addons, setAddons] = useState(selection?.addons ?? {});
 
   // Seed every counter group from its default so what the form shows and what
   // it stores always agree. Without this a group with a non-zero defaultValue
@@ -56,7 +42,7 @@ function ProductForm({
       }
     }
 
-    return { ...seeded, ...(initialCounters || {}) };
+    return { ...seeded, ...(selection?.counters ?? {}) };
   });
 
   // =====================================================
@@ -64,12 +50,10 @@ function ProductForm({
   // =====================================================
 
   function selectOption(group, option) {
-    setSelectedOptions((prev) => {
-      const current = prev[group.id];
-
+    setOptions((prev) => {
       // Clicking the active choice again clears it.
       // Required groups (size, serve) must always keep a selection.
-      if (current?.id === option.id) {
+      if (prev[group.id] === option.id) {
         if (group.required) return prev;
 
         const next = { ...prev };
@@ -80,7 +64,7 @@ function ProductForm({
 
       return {
         ...prev,
-        [group.id]: option,
+        [group.id]: option.id,
       };
     });
   }
@@ -123,65 +107,47 @@ function ProductForm({
   // ADDON
   // =====================================================
 
-  function toggleAddon(groupId, option) {
-    const current = selectedAddons[groupId] ?? [];
+  // Reads the previous list from the updater for the same reason the counters
+  // do: two quick taps batched into one render must not start from the same
+  // list.
+  function toggleAddon(group, option) {
+    setAddons((prev) => {
+      const current = prev[group.id] ?? [];
 
-    const exists = current.some((addon) => addon.id === option.id);
-
-    setSelectedAddons((prev) => ({
-      ...prev,
-      [groupId]: exists
-        ? current.filter((addon) => addon.id !== option.id)
-        : [...current, option],
-    }));
+      return {
+        ...prev,
+        [group.id]: current.includes(option.id)
+          ? current.filter((optionId) => optionId !== option.id)
+          : [...current, option.id],
+      };
+    });
   }
-
-  // =====================================================
-  // REQUIRED
-  // =====================================================
-
-  const missingRequired = optionGroups.some((group) => {
-    if (!group.required) return false;
-
-    if (group.type === "counter") return false;
-
-    return !selectedOptions[group.id];
-  });
 
   // =====================================================
   // PRICE
   // =====================================================
 
-  const optionPrice = Object.values(selectedOptions)
-    .filter(Boolean)
-    .reduce((sum, option) => sum + (option.price ?? 0), 0);
-
-  const addonPrice = Object.values(selectedAddons)
-    .flat()
-    .filter(Boolean)
-    .reduce((sum, addon) => sum + (addon.price ?? 0), 0);
-
-  const total = item.price + optionPrice + addonPrice;
+  // The cart prices lines through the same function, so the total on this
+  // button always matches what the cart shows afterwards.
+  const { unitPrice, complete } = resolveSelection(product, {
+    options,
+    addons,
+    counters,
+  });
 
   // =====================================================
   // ADD CART
   // =====================================================
 
   function handleAddToCart() {
-    if (missingRequired) return;
+    if (!complete) return;
 
-    const updatedItem = {
-      ...item,
-      selectedOptions,
-      selectedAddons,
-      counters,
-      totalPrice: total,
-    };
+    const nextSelection = { options, addons, counters };
 
     if (cartKey) {
-      updateItem(cartKey, updatedItem);
+      updateItem(cartKey, nextSelection);
     } else {
-      addItem(updatedItem);
+      addItem(product.id, nextSelection);
     }
 
     onDone();
@@ -189,7 +155,7 @@ function ProductForm({
 
   return (
     <>
-      <DialogTitle className="sr-only">{item.name}</DialogTitle>
+      <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
       <DialogDescription className="sr-only">Product detail</DialogDescription>
 
@@ -197,14 +163,14 @@ function ProductForm({
 
       <div className="flex-1 overflow-y-auto px-4 pt-10 pb-4">
         <img
-          src={item.image}
-          alt={item.name}
+          src={product.image}
+          alt={product.name}
           className="mb-4 h-44 w-full rounded-2xl object-cover"
         />
 
-        <h2 className="text-2xl font-bold">{item.name}</h2>
+        <h2 className="text-2xl font-bold">{product.name}</h2>
 
-        <p className="mb-6 text-muted-foreground">{item.description}</p>
+        <p className="mb-6 text-muted-foreground">{product.description}</p>
 
         {/* OPTIONS */}
 
@@ -221,7 +187,7 @@ function ProductForm({
             {group.type === "single" && (
               <div className="flex flex-wrap gap-2">
                 {group.options.map((option) => {
-                  const active = selectedOptions[group.id]?.id === option.id;
+                  const active = options[group.id] === option.id;
 
                   return (
                     <button
@@ -273,14 +239,12 @@ function ProductForm({
 
             <div className="flex flex-wrap gap-2">
               {group.options.map((option) => {
-                const active = selectedAddons[group.id]?.some(
-                  (addon) => addon.id === option.id,
-                );
+                const active = addons[group.id]?.includes(option.id);
 
                 return (
                   <button
                     key={option.id}
-                    onClick={() => toggleAddon(group.id, option)}
+                    onClick={() => toggleAddon(group, option)}
                     className={`
                       rounded-full border px-4 py-2
                       ${active ? "bg-black text-white" : ""}
@@ -300,17 +264,17 @@ function ProductForm({
 
       <div className="shrink-0 border-t bg-popover p-4">
         <Button
-          disabled={missingRequired}
+          disabled={!complete}
           onClick={handleAddToCart}
           className="w-full"
         >
           {isEdit ? (
             <>
               <Pencil />
-              Save Changes • {formatPrice(total)}
+              Save Changes • {formatPrice(unitPrice)}
             </>
           ) : (
-            <>Add to Cart • {formatPrice(total)}</>
+            <>Add to Cart • {formatPrice(unitPrice)}</>
           )}
         </Button>
       </div>
