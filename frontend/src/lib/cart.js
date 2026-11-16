@@ -10,6 +10,10 @@
 // stale copy living on in localStorage. This matches what POST /api/orders
 // sends: ids in, prices computed by the server.
 
+// The server rejects a line above this (docs/api-contract.md), so the cart
+// never lets one grow past it.
+export const MAX_LINE_QUANTITY = 99;
+
 // The same product with the same choices gets the same key, whatever order the
 // choices were made in. A counter at 0 counts as not chosen.
 export function createCartKey(
@@ -39,9 +43,9 @@ export function createCartKey(
 // and a label per modifier, in menu order. The product modal and the cart both
 // price through here, so the two can never disagree.
 //
-// `complete` is false when a chosen id no longer exists in the menu or a
-// required group has no choice, so a line can be flagged instead of priced on
-// a guess.
+// `complete` is false when a chosen id no longer exists in the menu, a
+// required group has no choice, or a counter is out of range, so a line can be
+// flagged instead of priced on a guess.
 export function resolveSelection(
   product,
   { options = {}, addons = {}, counters = {} },
@@ -98,10 +102,33 @@ export function resolveSelection(
       group.required && group.type !== "counter" && options[group.id] == null,
   );
 
+  // The server rejects a counter whose group has left the product or whose
+  // value is outside the group's range, for example after max drops from 10
+  // to 5 while the cart holds 8. A counter at 0 counts as not chosen, the same
+  // as in createCartKey, so a removed group only matters if it was used.
+  const counterGroups = new Map(
+    product.optionGroups
+      .filter((group) => group.type === "counter")
+      .map((group) => [group.id, group]),
+  );
+
+  const invalidCounter = Object.entries(counters).some(([groupId, value]) => {
+    const group = counterGroups.get(groupId);
+    const amount = value ?? 0;
+
+    if (!group) return amount !== 0;
+
+    return (
+      !Number.isInteger(amount) ||
+      amount < (group.min ?? 0) ||
+      amount > (group.max ?? Infinity)
+    );
+  });
+
   return {
     unitPrice,
     modifiers,
-    complete: resolved === requested && !missingRequired,
+    complete: resolved === requested && !missingRequired && !invalidCounter,
   };
 }
 

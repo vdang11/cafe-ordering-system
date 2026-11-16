@@ -135,12 +135,17 @@ function ProductForm({ product, cartKey, isEdit, selection, onDone }) {
     counters,
   });
 
+  // The menu can refetch while the modal is open, so a product can sell out
+  // under an open form. The card already refuses to open a sold-out product.
+  const soldOut = !product.available;
+  const canAdd = complete && !soldOut;
+
   // =====================================================
   // ADD CART
   // =====================================================
 
   function handleAddToCart() {
-    if (!complete) return;
+    if (!canAdd) return;
 
     const nextSelection = { options, addons, counters };
 
@@ -264,11 +269,13 @@ function ProductForm({ product, cartKey, isEdit, selection, onDone }) {
 
       <div className="shrink-0 border-t bg-popover p-4">
         <Button
-          disabled={!complete}
+          disabled={!canAdd}
           onClick={handleAddToCart}
           className="w-full"
         >
-          {isEdit ? (
+          {soldOut ? (
+            "Sold out"
+          ) : isEdit ? (
             <>
               <Pencil />
               Save Changes • {formatPrice(unitPrice)}

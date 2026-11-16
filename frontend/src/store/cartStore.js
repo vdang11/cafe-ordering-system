@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { createCartKey } from "@/lib/cart";
+import { createCartKey, MAX_LINE_QUANTITY } from "@/lib/cart";
+
+function capQuantity(quantity) {
+  return Math.min(quantity, MAX_LINE_QUANTITY);
+}
 
 // Lines hold ids only, never names or prices. See lib/cart.js for the shape,
 // and hooks/useCart.js for joining them with the menu.
@@ -22,7 +26,7 @@ const useCartStore = create(
                 item.cartKey === cartKey
                   ? {
                       ...item,
-                      quantity: item.quantity + 1,
+                      quantity: capQuantity(item.quantity + 1),
                     }
                   : item,
               ),
@@ -48,7 +52,7 @@ const useCartStore = create(
             item.cartKey === cartKey
               ? {
                   ...item,
-                  quantity: item.quantity + 1,
+                  quantity: capQuantity(item.quantity + 1),
                 }
               : item,
           ),
@@ -112,7 +116,7 @@ const useCartStore = create(
                   item.cartKey === merged.cartKey
                     ? {
                         ...item,
-                        quantity: item.quantity + merged.quantity,
+                        quantity: capQuantity(item.quantity + merged.quantity),
                       }
                     : item,
                 ),

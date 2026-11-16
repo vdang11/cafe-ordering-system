@@ -10,6 +10,23 @@ import { formatPrice } from "@/lib/formatPrice";
 // How many lines the order summary shows before "Show All".
 const SUMMARY_LIMIT = 3;
 
+// The same limits the server validates, from docs/api-contract.md. Enforcing
+// them here means a customer meets them while typing, not as a failed order.
+const MAX_NAME_LENGTH = 50;
+const MAX_PHONE_LENGTH = 20;
+const MAX_NOTES_LENGTH = 500;
+
+// Digits only: no sign, decimal or exponent. Number("7.5") and Number("1e1")
+// both pass an isNaN check, and Jackson's default would truncate 7.5 to table 7
+// without complaint. A leading zero is fine, so "07" is table 7.
+const TABLE_NUMBER_PATTERN = /^\d+$/;
+
+function isValidTableNumber(value) {
+  const trimmed = value.trim();
+
+  return TABLE_NUMBER_PATTERN.test(trimmed) && Number(trimmed) >= 1;
+}
+
 // ===== COMPONENT =====
 
 function CheckoutPage() {
@@ -92,9 +109,8 @@ function CheckoutPage() {
       return;
     }
 
-    // Validate table number is a positive number
-    if (isNaN(tableNumber) || tableNumber <= 0) {
-      alert("Please enter a valid table number");
+    if (!isValidTableNumber(tableNumber)) {
+      alert("Please enter your table number as a whole number, for example 7");
       return;
     }
 
@@ -178,6 +194,7 @@ function CheckoutPage() {
           id="customer-name"
           name="customerName"
           autoComplete="name"
+          maxLength={MAX_NAME_LENGTH}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter your name"
@@ -198,6 +215,7 @@ function CheckoutPage() {
           type="tel"
           inputMode="tel"
           autoComplete="tel"
+          maxLength={MAX_PHONE_LENGTH}
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           placeholder="Enter your phone number"
@@ -216,6 +234,7 @@ function CheckoutPage() {
           id="table-number"
           name="tableNumber"
           inputMode="numeric"
+          pattern="[0-9]*"
           value={tableNumber}
           onChange={(e) => setTableNumber(e.target.value)}
           placeholder="Enter table number"
@@ -233,6 +252,7 @@ function CheckoutPage() {
         <textarea
           id="special-instructions"
           name="specialInstructions"
+          maxLength={MAX_NOTES_LENGTH}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any special requests or notes..."

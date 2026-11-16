@@ -51,7 +51,7 @@ npm run preview   # preview production build
 
 | Variable | Purpose |
 |----------|---------|
-| `VITE_API_URL` | Base URL of the Spring Boot API. Defaults to `/api` when unset. |
+| `VITE_API_URL` | Base URL of the Spring Boot API. Defaults to `/api` when unset. Keep `/api` in development: the Vite dev server proxies it to Spring Boot on `http://localhost:8080`, so the backend needs no CORS and a phone on the same network reaches the API through your machine. |
 | `VITE_USE_MOCK_MENU` | `true` serves the menu from `src/data/menuData.js`. Set it to `false` once `GET /api/menu` is live. There is deliberately no automatic fallback to the mock when the API fails, so an outage can never show stale prices. |
 
 Vite reads env files only at startup: restart the dev server after changing either variable.
@@ -71,12 +71,15 @@ Submit Order → Success Page
 ```
 
 Rules:
+- A sold-out product (`available: false`) stays on the menu, greyed out and marked "Sold out", but cannot be opened or added to the cart.
 - Required modifiers must be selected before adding to cart. Optional modifiers can be cleared by tapping the active choice again; required ones always keep a selection.
 - The Product Modal closes automatically after **Add To Cart** / **Save Changes**.
 - Cart subtotal and the floating cart update instantly — no page refresh.
 - Cart state survives route navigation and a full page reload; it is persisted to `localStorage` under the key `cafe-cart`.
 - A cart line stores only the product id, the chosen option ids and the quantity. Names and prices are looked up in the current menu every time the cart is shown, so a price change reaches carts that already hold the product.
-- A line whose product or chosen option has left the menu, or whose product is unavailable, is flagged: it is left out of the subtotal, can only be removed, and blocks checkout.
+- A line whose product or chosen option has left the menu, whose counter is outside its group's range, or whose product is unavailable, is flagged: it is left out of the subtotal, can only be removed, and blocks checkout.
+- A cart line holds at most 99 of an item.
+- Checkout accepts the table number only as a whole number (`7`, not `7.5`), and caps the name, phone and notes at the lengths in [`docs/api-contract.md`](docs/api-contract.md).
 - Two items with the same product and the same configuration collapse into a single line, regardless of the order the modifiers were chosen in. Editing a line re-merges it if it comes to match another line.
 
 ### Routes

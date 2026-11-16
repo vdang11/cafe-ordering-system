@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import ProductModal from "@/components/menu/ProductModal";
 import useCartStore from "@/store/cartStore";
 import { formatPrice } from "@/lib/formatPrice";
+import { MAX_LINE_QUANTITY } from "@/lib/cart";
 
 // `line` is a cart line already joined with the menu by useCart().
 function CartItem({ line }) {
@@ -49,7 +50,8 @@ function CartItem({ line }) {
 
           <button
             onClick={() => increaseQuantity(line.cartKey)}
-            className="h-8 w-8 rounded-full border"
+            disabled={line.quantity >= MAX_LINE_QUANTITY}
+            className="h-8 w-8 rounded-full border disabled:opacity-40"
           >
             +
           </button>

@@ -12,7 +12,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`.env.example` documents both variables. While the backend does not exist, keep `VITE_USE_MOCK_MENU=true`.
+`.env.example` documents both variables. While the backend does not exist, keep `VITE_USE_MOCK_MENU=true`. In development, requests to `/api` are proxied to Spring Boot on `http://localhost:8080` (see `vite.config.js`).
 
 ## Where things live
 
